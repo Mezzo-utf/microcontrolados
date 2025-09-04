@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+//#include "button.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -60,11 +61,46 @@ static void MX_GPIO_Init(void);
  * @brief  The application entry point.
  * @retval int
  */
+
+uint8_t button_release(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, uint8_t active_high)
+{
+  static uint8_t last_state = 1;  // Último estado do botão
+  uint8_t current_state;
+
+  // Lê o estado atual do pino
+  current_state = HAL_GPIO_ReadPin(GPIOx, GPIO_Pin);
+
+  // Se o botão for ativo em nível alto, inverte a lógica
+  if (!active_high)
+    current_state = !current_state;
+
+  // Detecta transição de pressionado para solto
+  if (current_state == 1 && last_state == 0)
+  {
+    HAL_Delay(20);  // Delay LED_KIT_Pinde debounce (20ms)
+
+    // Confirma se ainda está solto após o delay
+    if (HAL_GPIO_ReadPin(GPIOx, GPIO_Pin) == (active_high ? GPIO_PIN_SET : GPIO_PIN_RESET))
+    {
+      last_state = 1;
+      return 1; // Botão foi solto
+    }
+  }
+
+  // Atualiza estado anterior se estiver pressionado
+  if (current_state == 0)
+    last_state = 0;
+
+  return 0; // Nenhuma transição detectada
+}
+
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
   uint32_t i;
-  uint8_t leds=0;
+  uint8_t leds = 0;
+  uint8_t last_led = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -91,53 +127,118 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    for (i = 0; i < 13; i++)
-    {
-      HAL_GPIO_WritePin(LED_KIT_GPIO_Port, LED_KIT_Pin, 0);
-      HAL_Delay(25);
-      HAL_GPIO_WritePin(LED_KIT_GPIO_Port, LED_KIT_Pin, 1);
-      HAL_Delay(50);
-      HAL_Delay(800);
-      if (!HAL_GPIO_ReadPin(GPIOA, Butao1_Pin))
-      {
-        HAL_GPIO_WritePin(GPIOA, leds, 0);
-        if (leds == 0)
-        {
-          leds = GPIO_PIN_12;
-        }
-        else if (leds == GPIO_PIN_12)
-        {
-          leds = GPIO_PIN_11;
-        }
-        else if (leds == GPIO_PIN_11)
-        {
-          leds = GPIO_PIN_10;
-        }
-        else if (leds == GPIO_PIN_10)
-        {
-          leds = GPIO_PIN_9;
-        }
-        else if (leds == GPIO_PIN_9)
-        {
-          leds = GPIO_PIN_8;
-        }
-        else if (leds == GPIO_PIN_8)
-        {
-          leds = 0;
-        }
+  
+  while (1) {
+  for (i = 0; i < 5; i++) {
 
-        HAL_GPIO_WritePin(GPIOA, leds, 1);
+    if (button_release(GPIOB, GPIO_PIN_12, 0)) {
+    //if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12) == GPIO_PIN_RESET){ // botão pressionado
+
+      HAL_GPIO_WritePin(GPIOA, leds, 0);
+
+      if (leds == 0) {
+        leds = (1 << 3);
+      } else if (leds == GPIO_PIN_7) {
+        leds = 0;
+      } else {
+        leds = leds << 1;
       }
+
+      HAL_GPIO_WritePin(GPIOA, leds, 1);
     }
 
-    /* USER CODE END WHILE */
+    HAL_Delay(200);
+  }
+}
+
+  
+  
+  /* while (1)
+  {
+    for (i=0; i<13;i++){
+    // HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_8); // alterna o estado do LED
+    HAL_GPIO_WritePin(LED_KIT_GPIO_Port, LED_KIT_Pin, 0);
+    HAL_Delay(25);
+    HAL_GPIO_WritePin(LED_KIT_GPIO_Port, LED_KIT_Pin, 1);
+    HAL_Delay(50);
+    HAL_Delay(800);
+    if (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12))
+    {
+      // Desliga o LED anterior
+      if (last_led != 0)
+      HAL_GPIO_WritePin(GPIOA, last_led, GPIO_PIN_RESET);
+  
+  if (leds == 0) {
+      leds = GPIO_PIN_3;
+      HAL_Delay(100);
+  }
+  else if (leds == GPIO_PIN_3) {
+      leds = GPIO_PIN_4;
+      HAL_Delay(100);
+  }
+  else if (leds == GPIO_PIN_4) {
+      leds = GPIO_PIN_5;
+      HAL_Delay(100);
+  }
+  else if (leds == GPIO_PIN_5) {
+      leds = GPIO_PIN_6;
+      HAL_Delay(100);
+  }
+  else if (leds == GPIO_PIN_6) {
+      leds = GPIO_PIN_7;
+      HAL_Delay(100);
+  }
+  else if (leds == GPIO_PIN_7) {
+      leds = GPIO_PIN_3; // volta para o início
+      HAL_Delay(100);
+  }
+  
+
+      HAL_GPIO_WritePin(GPIOA, leds, GPIO_PIN_SET);
+      last_led = leds;
+
+      HAL_Delay(200);
+    } */
+  }
+    /*
+    if (!HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_1))
+    {
+      HAL_GPIO_WritePin(GPIOA, leds, 1);
+      if (leds == 0)
+      {
+        leds = GPIO_PIN_12;
+      }
+      else if (leds == GPIO_PIN_12)
+      {
+        leds = GPIO_PIN_11;
+      }
+      else if (leds == GPIO_PIN_11)
+      {
+        leds = GPIO_PIN_10;
+      }
+      else if (leds == GPIO_PIN_10)
+      {
+        leds = GPIO_PIN_9;
+      }
+      else if (leds == GPIO_PIN_9)
+      {
+        leds = GPIO_PIN_8;
+      }
+      else if (leds == GPIO_PIN_8)
+      {
+        leds = 0;
+      }
+
+      HAL_GPIO_WritePin(GPIOA, leds, 1);
+    }
+  }
+
+  */
 
     /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
-}
+  
+  /* USER ODE END 3 */
+
 
 /**
  * @brief System Clock Configuration
@@ -156,14 +257,10 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
    * in the RCC_OscInitTypeDef structure.
    */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_OFF;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 25;
-  RCC_OscInitStruct.PLL.PLLN = 192;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -172,12 +269,12 @@ void SystemClock_Config(void)
   /** Initializes the CPU, AHB and APB buses clocks
    */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
     Error_Handler();
   }
